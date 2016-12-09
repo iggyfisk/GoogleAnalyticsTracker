@@ -45,11 +45,17 @@ namespace GoogleAnalyticsTracker.Core
                 }
             }
 
+            beaconList.ShiftToLast("dp");
             beaconList.ShiftToLast("z");
 
             return beaconList
                 .OrderBy(k => k.Item1, new BeaconComparer())
                 .ToDictionary(key => key.Item1, value => value.Item2);
+        }
+
+        private static List<IDictionary<string, string>> GetParametersDictionaryList(IEnumerable<IGeneralParameters> parameters)
+        {
+            return parameters.Select(p => GetParametersDictionary(p)).ToList();
         }
 
         private static object GetValueFromEnum(PropertyInfo propertyInfo, IGeneralParameters parameters)
@@ -78,6 +84,7 @@ namespace GoogleAnalyticsTracker.Core
         private void SetRequired(IGeneralParameters parameters)
         {
             parameters.TrackingId = TrackingAccount;
+            parameters.DocumentHostName = TrackingDomain;
 
             if (string.IsNullOrWhiteSpace(parameters.ClientId))
             {
@@ -88,7 +95,7 @@ namespace GoogleAnalyticsTracker.Core
             {
                 // Note: another way could be CultureInfo.CurrentCulture
                 parameters.UserLanguage = "en-US";
-            }
+            }            
         }        
 
         public async Task<TrackingResult> TrackAsync(IGeneralParameters generalParameters)
@@ -102,6 +109,19 @@ namespace GoogleAnalyticsTracker.Core
                 : BeaconUrl;
 
             return await RequestUrlAsync(url, parameters, generalParameters.UserAgent ?? UserAgent);
+        }
+
+        public async Task<TrackingResult> TrackAsync(IEnumerable<IGeneralParameters> generalParameters)
+        {
+            generalParameters = generalParameters.Select(p => { SetRequired(p); return p; });
+
+            var parameters = GetParametersDictionaryList(generalParameters);
+
+            var url = UseSsl
+                ? BatchUrlSsl
+                : BatchUrl;
+
+            return await PostUrlAsync(url, parameters, generalParameters.First().UserAgent ?? UserAgent);
         }
     }
 }
