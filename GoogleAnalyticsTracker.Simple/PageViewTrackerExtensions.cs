@@ -23,11 +23,13 @@ namespace GoogleAnalyticsTracker.Simple
 
         public static async Task<TrackingResult> TrackPageViewsAsync(this SimpleTracker tracker, IEnumerable<Tuple<string, string>> pages)
         {
+            var clientID = Guid.NewGuid().ToString();
             var pageViewParameters = pages.Select(p => new PageView
             {
                 DocumentTitle = p.Item1,
                 DocumentPath = p.Item2,
-                CacheBuster = null
+                CacheBuster = null,
+                ClientId = clientID
             });
 
             return await tracker.TrackAsync(pageViewParameters);
